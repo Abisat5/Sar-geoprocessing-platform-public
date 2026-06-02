@@ -6,6 +6,54 @@ A modular, microservice-ready geospatial platform for Synthetic Aperture Radar (
 
 ---
 
+## Latest Operational Validation — ALPAR C2 Target Hunt (Mod 2 Optical)
+
+The private branch now ships an end-to-end **Command & Control (C2) dashboard** with **mode-aware routing**: operators draw a Region of Interest (ROI) on the map, select **SAR (Mod 1)** or **Optical (Mod 2)**, and launch an automated **Target Hunt** pipeline. The workflow below documents a successful **Mod 2 Optical** run over a coastal maritime AOI.
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <strong>ROI Selection — ALPAR C2 Dashboard</strong><br />
+      <sub><code>alpar-c2-optical-roi-selection.png</code></sub><br />
+      <sub>Interactive map ROI · Mod 2 Optical (ESRI) · confidence & crop parameters</sub><br /><br />
+      <img src="docs/images/alpar-c2-optical-roi-selection.png" alt="ALPAR C2 dashboard with optical ROI selection on satellite basemap" width="100%" />
+    </td>
+    <td align="center" width="50%">
+      <strong>Target Hunt Output — Dual-Panel Detection Report</strong><br />
+      <sub><code>alpar-mod2-optical-target-hunt-result.png</code></sub><br />
+      <sub>Original optical frame · YOLOv11 detections with WGS84 coordinates</sub><br /><br />
+      <img src="docs/images/alpar-mod2-optical-target-hunt-result.png" alt="ALPAR Mod 2 optical target hunt dual-panel detection report" width="100%" />
+    </td>
+  </tr>
+</table>
+
+**Workflow summary (private branch):**
+
+| Stage | Mod 1 — SAR (Radar Core) | Mod 2 — Optical (ESRI Core) |
+| :--- | :--- | :--- |
+| **Ingestion** | NASA ASF Sentinel-1 GRD granule search & download | ESRI World Imagery export for map ROI (NASA ASF disabled) |
+| **Detector** | YOLOv11 SAR weights (`sar_best.pt`, conf ≥ 0.20) | YOLOv11 optical weights (`alpar_optical_best.pt`, conf ≥ 0.25) |
+| **Output** | Annotated dual-panel report → `sar_outputs/` | Annotated dual-panel report → `optical_outputs/` |
+| **API response** | `active_mode: "sar"` + georeferenced detections | `active_mode: "optical"` + georeferenced detections |
+
+The backend exposes `POST /api/v1/analytics/target-hunt` (and an SSE streaming variant) with a mandatory `mode` field. A **singleton model registry** loads each YOLO weights file once per process, avoiding repeated VRAM allocation across requests.
+
+---
+
+## NASA ASF / Earthdata Login — Integration Verification
+
+Sentinel-1 data access for **Mod 1 SAR Target Hunt** is validated against the **NASA Alaska Satellite Facility (ASF)** catalogue via **Earthdata Login**. The automated connection test confirms authentication, granule search, and catalogue readiness before any download pipeline is invoked.
+
+<p align="center">
+  <img src="docs/images/nasa-asf-earthdata-connection-test.png" alt="ALPAR Earthdata and NASA ASF connection test — authentication and Sentinel-1 search OK" width="72%" />
+</p>
+
+<p align="center"><sub><code>nasa-asf-earthdata-connection-test.png</code> — automated health check: credential validation · Sentinel-1 catalogue query · granule discovery</sub></p>
+
+> **Security note:** Earthdata credentials, tokens, and scene identifiers are **never** published in this repository. Operators configure authentication locally in the private deployment environment.
+
+---
+
 ## High-Resolution Optical Satellite Subsystem — YOLOv11 & SAHI Integration
 
 To extend the platform's multi-sensor capabilities, an advanced optical satellite object detection pipeline has been integrated into the private development branch. This subsystem leverages a custom-trained **YOLO11s** model optimized for high-altitude remote sensing, trained on a large-scale dataset comprising over **80,000 high-resolution aerial and satellite images**.
@@ -77,7 +125,7 @@ The custom **YOLO11s** model was trained for **50 epochs** on cloud GPU infrastr
 #### 2. Training Infrastructure & Resilience (Crisis Management)
 - **Model Selection:** The **Ultralytics YOLO11s (Small)** architecture was chosen as the base model to strike an optimal balance between highly optimized inference latency and parameter capacity.
 - **Initial Training Phase (L4 Connection Crisis):** Training was initiated on a Google Colab instance utilizing an **NVIDIA L4 GPU (22.5 GB VRAM)**. However, at **17% of the very first epoch**, the training session suffered an abrupt interruption due to a browser connection drop (`KeyboardInterrupt`).
-- **Resilient Recovery (Google Drive & T4 Migration):** Utilizing our structured cloud sync setup, checkpoints were secured to Google Drive. The pipeline was migrated to a Google Colab **NVIDIA T4 GPU** instance, and training was successfully resumed with **zero data loss** by passing the `resume=True` parameter to the PyTorch-based training wrapper.
+- **Resilient Recovery (Google Drive & Session Resumption):** Utilizing our structured cloud sync setup, checkpoints were secured to Google Drive. The training was successfully resumed on the **NVIDIA L4 GPU** platform with **zero data loss** by mounting the storage and passing the `resume=True` parameter to the PyTorch-based training wrapper.
 - **Weight Size Technical Discovery:** Upon successful completion of all 50 epochs, the intermediate checkpoint files (which include full optimizer states) were measured at **54.3 MB**. Conversely, the final stripped production weights (`best.pt` and `last.pt`) were exactly **18.4 MB**. While initially suspected to be a write corruption, our technical analysis verified this as expected behavior: the YOLO11s inference model utilizes half-precision (FP16) compression and strips training-only optimizer states to minimize disk footprint. The model's complete operational integrity was successfully verified via a `model.names` structural integrity validation pass.
 
 #### 3. Objective Success Metrics & Performance Evaluation
@@ -161,7 +209,17 @@ Benchmarks on **NVIDIA Ada Lovelace (L4)** architecture:
 
 ## New Updates
 
-The following items reflect the **latest engineering cycle** on the private branch (2025–2026): cloud data-plane modularization, Azure integration outcomes, and SAR detector upgrades—including **YOLOv11n** training above.
+The following items reflect the **latest engineering cycle** on the private branch (2025–2026): cloud data-plane modularization, Azure integration outcomes, SAR detector upgrades, and the **ALPAR C2 multi-mode Target Hunt** stack documented above.
+
+### ALPAR C2 Dashboard & Mode-Aware Target Hunt (June 2026)
+
+- **Interactive C2 frontend** (Next.js + Leaflet): map-based ROI drawing, live SSE operation log, and dual-panel result modal.
+- **Mode routing (`sar` | `optical`)**: Strategy-pattern dispatch isolates ingestion, model weights, confidence defaults, and output directories per sensor stream.
+- **Mod 1 SAR Target Hunt**: Iterates NASA ASF Sentinel-1 GRD granules within the ROI/time window; stops on first YOLO detection; exports georeferenced dual-panel reports.
+- **Mod 2 Optical Target Hunt**: Fetches high-resolution ESRI World Imagery for the selected bbox; runs optical YOLO inference; maps pixel detections to WGS84 coordinates.
+- **Adaptive ESRI export sizing**: Automatically retries smaller export dimensions when the public MapServer returns HTTP 500 on very small ROIs (pixel-density limit).
+- **Singleton YOLO model cache**: Per-mode weights loaded once and reused across API requests.
+- **REST + SSE endpoints**: Synchronous JSON response and streaming log channel for operator-facing dashboards.
 
 ### YOLOv11 SAR Detector (Production-Oriented)
 
@@ -173,7 +231,7 @@ The following items reflect the **latest engineering cycle** on the private bran
 
 - **Dataset Harmonization:** Compiled a training corpus of **80,020 images** with **400,000+ annotations** from DOTA and DIOR datasets.
 - **Sanitized Classes:** Filtered 30+ non-tactical classes and dynamically resolved malformed annotations. Sorted and locked class IDs alphabetically (`0: aircraft`, `1: bridge`, `2: car`, `3: harbor`, `4: ship`) to match downstream fusion modules.
-- **Training Resilience:** Successfully migrated training from Google Colab L4 to T4 GPU with zero epoch loss after connection drops. Verified weight optimization outcomes where inference weight size was stripped to exactly **18.4 MB** (from 54.3 MB checkpoint).
+- **Training Resilience:** Successfully recovered and resumed training on the NVIDIA L4 GPU platform with zero epoch loss after connection drops using Google Drive checkpoint sync. Verified weight optimization outcomes where inference weight size was stripped to exactly **18.4 MB** (from 54.3 MB checkpoint).
 - **SAHI Integration:** Implemented 256x256 sliding window inference with 25% overlap, boosting baseline raw Recall from 54.22% to **75% - 80%** operational Recall, resolving small-target detection challenges in dense airfield and port layouts.
 
 ### Modular Runtime Modes (A / B / C)
@@ -347,6 +405,7 @@ Revised after GeoCatalog evaluation and YOLOv11 SAR training completion.
 | Multi-sensor fusion UI | Done | Overlay, HUD, 300 DPI export |
 | **YOLOv11n SAR training** | **Done** | 50-epoch L4 run; metrics & visual verification published |
 | **YOLOv11 + SAHI Pipeline** | **Done** | 80,000-image satellite training & Slicing Aided Hyper Inference (SAHI) integration for ultra-high-res optical detection |
+| **ALPAR C2 Target Hunt (Mod 1/2)** | **Done** | Mode routing · NASA ASF SAR loop · ESRI optical ingest · FastAPI + SSE dashboard |
 | Mod B — Azure Blob SAR | In progress | COG on storage, tactical output staging |
 | Mod A — catalogue fallback | Supported | Public STAC Sentinel-1 |
 | GeoCatalog (Mod C) | **Deferred** | Azure instability during evaluation |
@@ -361,6 +420,7 @@ flowchart LR
     YOLO[YOLOv11n SAR training]
     SAHI[YOLOv11 + SAHI Optical]
     FUS[Fusion prototype]
+    C2[ALPAR C2 Target Hunt]
   end
   subgraph now [In progress]
     B[Mod B Azure Blob]
@@ -372,12 +432,13 @@ flowchart LR
   end
   YOLO --> API
   SAHI --> API
+  C2 --> API
   B --> API
   FUS --> API
   C -.-> later
 ```
 
-**Strategic takeaway:** **YOLOv11 SAR detection is validated**; focus shifts to **Azure-hosted delivery**, **blob-backed SAR ingest**, and **tight coupling between detector output and fusion**—without blocking on GeoCatalog.
+**Strategic takeaway:** **YOLOv11 SAR and optical detection are validated**; the **ALPAR C2 Target Hunt** stack demonstrates production-oriented mode routing from map ROI to georeferenced detections. Focus shifts to **Azure-hosted delivery**, **blob-backed SAR ingest**, and **tight coupling between detector output and fusion**—without blocking on GeoCatalog.
 
 ---
 
