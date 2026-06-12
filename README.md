@@ -6,43 +6,150 @@ A modular, microservice-ready geospatial platform for Synthetic Aperture Radar (
 
 ---
 
-## Latest Operational Validation — ALPAR C2 Target Hunt (Mod 2 Optical)
+## Engineering Release Report — June 2026 (Private Branch Summary)
 
-The private branch now ships an end-to-end **Command & Control (C2) dashboard** with **mode-aware routing**: operators draw a Region of Interest (ROI) on the map, select **SAR (Mod 1)** or **Optical (Mod 2)**, and launch an automated **Target Hunt** pipeline. The workflow below documents a successful **Mod 2 Optical** run over a coastal maritime AOI.
+This section documents the **latest validated engineering cycle** on the private ALPAR stack: unified **Cloud-Optimized GeoTIFF (COG) streaming** for both SAR and optical Target Hunt modes, an **Esri-native C2 map frontend**, sub-pixel **WGS84 overlay alignment**, and a **local-first trial policy** that avoids remote catalog writes during development.
+
+### Executive summary
+
+| Area | Previous baseline (public README) | Current validated behaviour (private branch) |
+| :--- | :--- | :--- |
+| **Mod 1 SAR ingest** | NASA ASF granule search & download | **Microsoft Planetary Computer** `sentinel-1-grd` STAC + **rasterio window read** (ROI pixels only) |
+| **Mod 2 Optical ingest** | Third-party map imagery export for ROI | **MPC STAC** — `sentinel-2-l2a` or **Landsat Collection 2 L2** with operator-selectable satellite dropdown |
+| **Data transfer model** | Full-frame or export API pulls | **COG HTTP range reads** into RAM — no whole-scene download required for hunt |
+| **C2 frontend** | Leaflet-based ROI dashboard | **Next.js + Esri ArcGIS MapView** — tactical basemap auto-switch, georeferenced overlay, opacity control |
+| **Overlay georef** | Bounding-box approximation | Extent derived from **rasterio window affine** — full floating-point WGS84 returned to the map layer |
+| **Optical visualization** | Standard inference frame | Per-band **2nd–98th percentile contrast stretch** on raw multispectral COG bands (no cloud masking) |
+| **Trial / dev policy** | Remote catalog & blob staging enabled when configured | **Configurable cloud-write gate** — local PNG overlays only; remote STAC push and blob upload bypassed |
+
+> **Security & operations note:** Deployment credentials, storage account identifiers, Entra application IDs, internal collection names, and weight artefacts are **not** published here. Operators configure authentication and cloud policies only in the private environment.
+
+### COG streaming architecture (Mod 1 + Mod 2)
+
+<p align="center">
+  <img src="docs/images/alpar-mpc-cog-streaming-architecture.png" alt="ALPAR MPC COG streaming architecture — SAR and optical window ingestion" width="96%" />
+</p>
+
+<p align="center"><sub><code>alpar-mpc-cog-streaming-architecture.png</code> — unified read-only ingestion: STAC discovery → signed COG asset → rasterio ROI window → radiometry → optional YOLO → local georeferenced overlay</sub></p>
+
+**Technical highlights (public-safe):**
+
+- **STAC-first discovery** on the public Planetary Computer catalogue with **cloud-cover filtering** for optical collections.
+- **Band mapping by sensor:** Sentinel-2 true-colour (red / green / blue COG assets); Landsat C2 L2 equivalent RGB assets — selected from the optical dropdown.
+- **Windowed COG reads** via `rasterio` — only the operator ROI is materialized in memory.
+- **SAR radiometry** normalizes GRD backscatter for visual overlay; **optical radiometry** applies per-band percentile stretch so clouds and open water remain visually interpretable without semantic masking.
+- **Singleton YOLO registry** unchanged — one weights load per sensor mode per API process.
+
+### Ingestion paradigm shift (optical)
+
+<p align="center">
+  <img src="docs/images/alpar-ingestion-paradigm-comparison.png" alt="Before and after optical ingestion paradigm — export API vs MPC COG window" width="88%" />
+</p>
+
+<p align="center"><sub><code>alpar-ingestion-paradigm-comparison.png</code> — conceptual comparison: full-frame export latency vs ROI-scoped COG streaming</sub></p>
+
+### C2 dashboard — Esri MapView workflow
+
+<p align="center">
+  <img src="docs/images/alpar-c2-esri-dashboard-workflow.png" alt="ALPAR C2 Esri dashboard workflow — ROI, basemap modes, overlay opacity" width="96%" />
+</p>
+
+<p align="center"><sub><code>alpar-c2-esri-dashboard-workflow.png</code> — operator panel, mode-aware basemap, georeferenced PNG overlay aligned to raster window extent</sub></p>
+
+**Frontend capabilities delivered in this cycle:**
+
+| Capability | SAR (Mod 1) | Optical (Mod 2) |
+| :--- | :--- | :--- |
+| **Basemap** | Dark tactical vector basemap | Satellite imagery basemap |
+| **ROI** | Interactive draw + confirm on map | Same |
+| **Scene selection** | Automatic STAC time-window search | Dropdown of recent MPC scenes + manual refresh |
+| **Processing modes** | YOLO Target Hunt loop | **Manual** (raw stretched RGB on map) or **YOLO** hunt |
+| **Overlay layer** | Georeferenced transparent PNG | Georeferenced transparent PNG |
+| **Opacity control** | 0–100% slider (live) | 0–100% slider (live) |
+| **Layer hygiene** | Remove overlay on tab / ROI / new hunt | Same |
+
+**Georeferencing precision:** overlay `extent` values are computed from the **actual COG pixel window transform** (not a rounded map-drawn bbox), ensuring the image seats on the Esri map without visible drift at maritime ROI scales.
+
+**API surface (high level, private branch):**
+
+- SAR Target Hunt — streaming SSE + JSON completion payload with `overlay_url` and `extent`.
+- Optical **two-phase** flow — scene listing endpoint, then per-scene process stream (`manual` | `yolo`).
+- All overlay artefacts served from **local static media** in trial configuration.
+
+### Updated modality workflow matrix
+
+| Stage | Mod 1 — SAR (Radar Core) | Mod 2 — Optical |
+| :--- | :--- | :--- |
+| **Ingestion** | MPC `sentinel-1-grd` COG window stream | MPC `sentinel-2-l2a` or Landsat C2 L2 COG window stream |
+| **Cloud filter** | STAC datetime + ROI intersection | `eo:cloud_cover < 10` + ROI intersection |
+| **Detector** | YOLOv11 SAR weights (conf ≥ 0.20) | YOLOv11 optical weights (conf ≥ 0.25) — skipped in manual mode |
+| **Map product** | Local georeferenced PNG overlay | Local georeferenced PNG overlay (stretched true colour) |
+| **Analyst report** | Dual-panel annotated export | Dual-panel annotated export (YOLO mode) |
+| **Fusion (Mod 3)** | Metadata plane (when enabled in deployment) | Metadata plane (when enabled in deployment) |
+
+Mod 1 and Mod 2 ingestion remain **fully isolated**. Mod 3 continues to consume detection metadata only — it does not replace MPC COG ingest paths.
+
+### Live operational validation — June 2026
+
+Private-branch **ALPAR C2** captures below: each row shows the **Esri dashboard** (ROI + georeferenced overlay) alongside a **YOLO dual-panel export** for the same sensor modality.
+
+#### Mod 2 Optical — MPC Sentinel-2 COG stream
 
 <table>
   <tr>
     <td align="center" width="50%">
-      <strong>ROI Selection — ALPAR C2 Dashboard</strong><br />
-      <sub><code>alpar-c2-optical-roi-selection.png</code></sub><br />
-      <sub>Interactive map ROI · Mod 2 Optical (ESRI) · confidence & crop parameters</sub><br /><br />
-      <img src="docs/images/alpar-c2-optical-roi-selection.png" alt="ALPAR C2 dashboard with optical ROI selection on satellite basemap" width="100%" />
+      <strong>C2 dashboard — ROI + stretched RGB overlay</strong><br />
+      <sub><code>alpar-c2-mpc-optical-yolo-validation.png</code></sub><br />
+      <sub>Satellite basemap · 85% opacity · maritime YOLO markers · live SSE log</sub><br /><br />
+      <img src="docs/images/alpar-c2-mpc-optical-yolo-validation.png" alt="ALPAR C2 Mod 2 optical dashboard — MPC overlay and YOLO detections on Esri map" width="100%" />
     </td>
     <td align="center" width="50%">
-      <strong>Target Hunt Output — Dual-Panel Detection Report</strong><br />
+      <strong>Dual-panel detection report (export format)</strong><br />
       <sub><code>alpar-mod2-optical-target-hunt-result.png</code></sub><br />
-      <sub>Original optical frame · YOLOv11 detections with WGS84 coordinates</sub><br /><br />
+      <sub>Representative optical dual-panel · YOLOv11 detections · WGS84 coordinates</sub><br /><br />
       <img src="docs/images/alpar-mod2-optical-target-hunt-result.png" alt="ALPAR Mod 2 optical target hunt dual-panel detection report" width="100%" />
     </td>
   </tr>
 </table>
 
-**Workflow summary (private branch):**
+#### Mod 1 SAR — MPC Sentinel-1 GRD COG stream
 
-| Stage | Mod 1 — SAR (Radar Core) | Mod 2 — Optical (ESRI Core) |
-| :--- | :--- | :--- |
-| **Ingestion** | NASA ASF Sentinel-1 GRD granule search & download | ESRI World Imagery export for map ROI (NASA ASF disabled) |
-| **Detector** | YOLOv11 SAR weights (`sar_best.pt`, conf ≥ 0.20) | YOLOv11 optical weights (`alpar_optical_best.pt`, conf ≥ 0.25) |
-| **Output** | Annotated dual-panel report → `sar_outputs/` | Annotated dual-panel report → `optical_outputs/` |
-| **API response** | `active_mode: "sar"` + georeferenced detections | `active_mode: "optical"` + georeferenced detections |
-
-The backend exposes `POST /api/v1/analytics/target-hunt` (and an SSE streaming variant) with a mandatory `mode` field. A **singleton model registry** loads each YOLO weights file once per process, avoiding repeated VRAM allocation across requests.
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <strong>C2 dashboard — dark tactical basemap + SAR overlay</strong><br />
+      <sub><code>alpar-c2-sar-roi-overlay-dashboard.png</code></sub><br />
+      <sub>Mod 1 SAR Radar tab · MPC `sentinel-1-grd` window · 85% opacity · confidence 20%</sub><br /><br />
+      <img src="docs/images/alpar-c2-sar-roi-overlay-dashboard.png" alt="ALPAR C2 Mod 1 SAR dashboard — ROI, dark basemap, and georeferenced SAR overlay" width="100%" />
+    </td>
+    <td align="center" width="50%">
+      <strong>Dual-panel detection report</strong><br />
+      <sub><code>alpar-mod1-sar-dual-panel-detection-report.png</code></sub><br />
+      <sub>Original SAR chip · YOLOv11 ship boxes · confidence · WGS84 per detection</sub><br /><br />
+      <img src="docs/images/alpar-mod1-sar-dual-panel-detection-report.png" alt="ALPAR Mod 1 SAR dual-panel target hunt report with georeferenced detections" width="100%" />
+    </td>
+  </tr>
+</table>
 
 ---
 
-## NASA ASF / Earthdata Login — Integration Verification
+## Latest Operational Validation — ALPAR C2 Target Hunt (Archive)
 
-Sentinel-1 data access for **Mod 1 SAR Target Hunt** is validated against the **NASA Alaska Satellite Facility (ASF)** catalogue via **Earthdata Login**. The automated connection test confirms authentication, granule search, and catalogue readiness before any download pipeline is invoked.
+Earlier Mod 2 dashboard capture (pre–Esri MapView / MPC COG migration) retained for historical comparison:
+
+<p align="center">
+  <img src="docs/images/alpar-c2-optical-roi-selection.png" alt="ALPAR C2 dashboard with optical ROI selection on satellite basemap (archive)" width="72%" />
+</p>
+
+<p align="center"><sub><code>alpar-c2-optical-roi-selection.png</code> — legacy Leaflet-era ROI selection UI</sub></p>
+
+The backend exposes mode-aware Target Hunt endpoints (REST + SSE streaming). A **singleton model registry** loads each YOLO weights file once per process, avoiding repeated VRAM allocation across requests.
+
+---
+
+## NASA ASF / Earthdata Login — Integration Verification (Legacy Path)
+
+**Primary Mod 1 Target Hunt ingestion** on the private branch now uses **Planetary Computer COG streaming** (see *Engineering Release Report — June 2026*). The **NASA Alaska Satellite Facility (ASF)** catalogue via **Earthdata Login** remains available as a **legacy / auxiliary verification** path for Sentinel-1 catalogue authentication and granule discovery testing.
 
 <p align="center">
   <img src="docs/images/nasa-asf-earthdata-connection-test.png" alt="ALPAR Earthdata and NASA ASF connection test — authentication and Sentinel-1 search OK" width="72%" />
@@ -209,15 +316,35 @@ Benchmarks on **NVIDIA Ada Lovelace (L4)** architecture:
 
 ## New Updates
 
-The following items reflect the **latest engineering cycle** on the private branch (2025–2026): cloud data-plane modularization, Azure integration outcomes, SAR detector upgrades, and the **ALPAR C2 multi-mode Target Hunt** stack documented above.
+The following items reflect engineering milestones on the private branch (2025–2026), including the **June 2026 COG streaming & Esri C2 release** documented at the top of this README.
 
-### ALPAR C2 Dashboard & Mode-Aware Target Hunt (June 2026)
+### June 2026 — MPC COG Streaming, Esri C2 & Local-First Trial Mode
 
-- **Interactive C2 frontend** (Next.js + Leaflet): map-based ROI drawing, live SSE operation log, and dual-panel result modal.
+- **Unified COG ingestion:** Mod 1 (`sentinel-1-grd`) and Mod 2 (`sentinel-2-l2a`, Landsat C2 L2) use **rasterio window reads** from Planetary Computer — ROI-scoped, seconds-level latency profile.
+- **Esri MapView frontend:** Replaced Leaflet map core with **@arcgis/core MapView**; SAR/optical **basemap auto-switch**; georeferenced transparent PNG overlay with **live opacity slider**.
+- **Optical two-phase UX:** STAC scene listing for the drawn ROI, then per-scene **manual** (visual inspection) or **YOLO** processing.
+- **Radiometric transparency:** Optical overlays use **per-band 2–98% stretch** without cloud or water masking — suitable for analyst visual QA.
+- **Sub-pixel georef:** Overlay extent computed from raster window transform; API returns full-precision WGS84 bounds to the map client.
+- **Trial cloud-write policy:** Development deployments can enforce **read-only cloud access** — no remote catalog push or blob upload; overlays remain on local static media only.
+
+### Prior cycles (2025 – early 2026)
+
+Cloud data-plane modularization, Azure integration outcomes, SAR detector upgrades, the **ALPAR C2 multi-mode Target Hunt** stack, and the **Mod 3 GeoCatalog Fusion Engine**.
+
+### Mod 3 Intelligence Fusion Layer — Azure GeoCatalog (Production)
+
+- **Azure GeoCatalog Integration:** Successfully deployed as the multi-modal data fusion and cataloging core for **Mode 3 (Intelligence Fusion Layer)**.
+- **Isolated architecture:** Mod 1/2 MPC COG Target Hunt ingestion paths are unchanged; GeoCatalog consumes detection metadata only.
+- **`POST /api/v1/analytics/fusion-window`:** Builds a unified Fusion Window from SAR + Optical detections, STAC catalog items, and acquisition metadata.
+- **Pydantic-configured deployment:** `MPC_PRO_GEOCATALOG_URL`, `AZURE_GEOCATALOG_NAME`, `AZURE_SUBSCRIPTION_ID`, `AZURE_RESOURCE_GROUP`, `AZURE_CLIENT_ID`.
+- **Verification script:** `python scripts/verify_geocatalog.py` (private branch).
+
+### ALPAR C2 Dashboard & Mode-Aware Target Hunt
+
+- **Interactive C2 frontend** (Next.js + **Esri MapView**): map-based ROI drawing, live SSE operation log, dual-panel result modal, and georeferenced overlay layer.
 - **Mode routing (`sar` | `optical`)**: Strategy-pattern dispatch isolates ingestion, model weights, confidence defaults, and output directories per sensor stream.
-- **Mod 1 SAR Target Hunt**: Iterates NASA ASF Sentinel-1 GRD granules within the ROI/time window; stops on first YOLO detection; exports georeferenced dual-panel reports.
-- **Mod 2 Optical Target Hunt**: Fetches high-resolution ESRI World Imagery for the selected bbox; runs optical YOLO inference; maps pixel detections to WGS84 coordinates.
-- **Adaptive ESRI export sizing**: Automatically retries smaller export dimensions when the public MapServer returns HTTP 500 on very small ROIs (pixel-density limit).
+- **Mod 1 SAR Target Hunt**: MPC `sentinel-1-grd` COG window stream within ROI/time window; YOLO loop; georeferenced local overlay + dual-panel report.
+- **Mod 2 Optical Target Hunt**: MPC optical COG window stream with satellite dropdown; **manual** or **YOLO** path; WGS84 detection mapping when inference runs.
 - **Singleton YOLO model cache**: Per-mode weights loaded once and reused across API requests.
 - **REST + SSE endpoints**: Synchronous JSON response and streaming log channel for operator-facing dashboards.
 
@@ -234,13 +361,33 @@ The following items reflect the **latest engineering cycle** on the private bran
 - **Training Resilience:** Successfully recovered and resumed training on the NVIDIA L4 GPU platform with zero epoch loss after connection drops using Google Drive checkpoint sync. Verified weight optimization outcomes where inference weight size was stripped to exactly **18.4 MB** (from 54.3 MB checkpoint).
 - **SAHI Integration:** Implemented 256x256 sliding window inference with 25% overlap, boosting baseline raw Recall from 54.22% to **75% - 80%** operational Recall, resolving small-target detection challenges in dense airfield and port layouts.
 
-### Modular Runtime Modes (A / B / C)
+### Azure GeoCatalog Integration — Mod 3 Intelligence Fusion Layer
+
+**Azure GeoCatalog Integration: Successfully deployed and utilized as the multi-modal data fusion and cataloging core for Mode 3 (Intelligence Fusion Layer).**
+
+Microsoft **Planetary Computer Pro GeoCatalog** is now the upper intelligence tier of the ALPAR stack. It does **not** replace Mod 1/2 MPC COG Target Hunt ingest. Instead, it:
+
+- **Catalogs** STAC metadata (acquisition time, collection, platform, asset keys) for the operator-selected ROI via authenticated Entra ID access.
+- **Correlates** SAR and Optical target-hunt detections by geospatial proximity and temporal context.
+- **Publishes** a unified **Fusion Window** JSON payload to the frontend via `POST /api/v1/analytics/fusion-window`.
+
+| Layer | Role | Ingestion source (unchanged) |
+| :--- | :--- | :--- |
+| **Mod 1** | SAR Target Hunt + YOLO | MPC `sentinel-1-grd` COG (primary) |
+| **Mod 2** | Optical Target Hunt + YOLO / manual QA | MPC `sentinel-2-l2a` & Landsat C2 L2 COG |
+| **Mod 3** | GeoCatalog STAC catalog + detection metadata fusion | Cloud metadata plane (deployment-gated) |
+
+Configuration is managed through **Pydantic Settings** in the private deployment. Credentials, subscription identifiers, and deployment secrets remain in the private environment only.
+
+### Modular Runtime Modes (A / B / C — data plane)
 
 | Mode | Designation | Data plane (summary) |
 |------|-------------|----------------------|
-| **A** | Fast / catalogue | Live optical basemap + Sentinel-1 SAR via public STAC (Planetary Computer pattern) |
-| **B** | Enterprise / storage | Sentinel-1 VV/VH COG from **Azure Blob Storage**, windowed 512×512 reads (primary target path) |
-| **C** | GeoCatalog | Azure **Planetary Computer Pro GeoCatalog** STAC (reserved until stable) |
+| **A** | Fast / catalogue | **Primary Target Hunt path** — MPC STAC + COG window reads (SAR & optical) |
+| **B** | Enterprise / storage | Sentinel-1 VV/VH COG from **Azure Blob Storage**, windowed 512×512 reads (primary operational path) |
+| **C** | Legacy SAR ingest | Optional GeoCatalog-backed SAR I/Q reads (`ALPAR_GEOCATALOG_SAR_INGEST`, disabled by default) |
+
+> **Mod 3 Fusion** is orthogonal to run modes A/B/C. GeoCatalog serves the fusion API regardless of whether blob, catalogue, or mock SAR loaders are active.
 
 ### Azure Blob Storage Integration (Mod B)
 
@@ -249,13 +396,13 @@ The following items reflect the **latest engineering cycle** on the private bran
 - API responses may include **`tactical_map_blob_url`** when storage is configured.
 - **Pydantic Settings**–based configuration for run mode, containers, paths, and timeouts.
 
-### Azure GeoCatalog Pro — Attempted, Not Adopted (Yet)
+### Mod 3 Fusion Engine (GeoCatalog — Production)
 
-**Microsoft Planetary Computer Pro GeoCatalog** (West Europe) was evaluated as a unified STAC + Entra ID plane for optical and SAR.
-
-**Outcome:** **Unsuccessful in production testing**—GeoCatalog remained **blocked by platform instability** (deployment and endpoint issues on the Azure side during the evaluation window). **Mod C** remains in code for future use; the **active roadmap does not depend on GeoCatalog**.
-
-**Current direction:** **Mod B** (Azure Blob) primary; **Mod A** (catalogue) and **offline mock** as fallbacks.
+- **`POST /api/v1/analytics/fusion-window`**: merges Mod 1 SAR and Mod 2 Optical detection payloads inside a shared ROI.
+- **GeoCatalog STAC search**: retrieves catalog items intersecting the fusion bbox; enriches detections with acquisition metadata.
+- **Spatial decision fusion**: pairs SAR/Optical hits within a configurable match radius; labels results as `fusion_verified`, `sar_only`, or `optical_only`.
+- **Health probe**: `/health` reports `fusion_layer` and GeoCatalog reachability without exposing credentials.
+- **Isolation guarantee**: Target Hunt `mode=sar|optical` routing and ingestion services are unchanged.
 
 ### Offline / Zero-Network Operation
 
@@ -390,55 +537,59 @@ Bounding Box Regression Map Shape   : torch.Size([1, 4, 64, 64])
 | Deep learning | PyTorch; **Ultralytics YOLOv11 & SAHI** (SAR & Optical satellite detection, private branch) |
 | Signal / matrix | NumPy, SciPy, OpenCV, Rasterio |
 | Geospatial | STAC patterns, COG window reads, dual-sensor fusion |
-| API (private) | FastAPI, Pydantic Settings |
-| Cloud (private) | Azure Blob Storage; GeoCatalog evaluated (deferred) |
+| API (private) | FastAPI, Pydantic Settings, SSE streaming |
+| C2 frontend (private) | Next.js, **Esri ArcGIS Maps SDK for JavaScript** |
+| Cloud (private) | Planetary Computer STAC/COG (read); optional Azure Blob & GeoCatalog (deployment-gated writes) |
 
 ---
 
 ## Roadmap (Public Summary)
 
-Revised after GeoCatalog evaluation and YOLOv11 SAR training completion.
+Revised after the **June 2026 MPC COG streaming release**, GeoCatalog Mod 3 fusion deployment, and ALPAR C2 Target Hunt completion.
 
 | Phase | Status | Focus |
 |-------|--------|--------|
 | Core signal + multi-task CNN | Done | Lee filter, dB scale, masked loss |
 | Multi-sensor fusion UI | Done | Overlay, HUD, 300 DPI export |
 | **YOLOv11n SAR training** | **Done** | 50-epoch L4 run; metrics & visual verification published |
-| **YOLOv11 + SAHI Pipeline** | **Done** | 80,000-image satellite training & Slicing Aided Hyper Inference (SAHI) integration for ultra-high-res optical detection |
-| **ALPAR C2 Target Hunt (Mod 1/2)** | **Done** | Mode routing · NASA ASF SAR loop · ESRI optical ingest · FastAPI + SSE dashboard |
-| Mod B — Azure Blob SAR | In progress | COG on storage, tactical output staging |
-| Mod A — catalogue fallback | Supported | Public STAC Sentinel-1 |
-| GeoCatalog (Mod C) | **Deferred** | Azure instability during evaluation |
+| **YOLOv11 + SAHI Pipeline** | **Done** | 80,000-image satellite training & SAHI integration |
+| **ALPAR C2 Target Hunt (Mod 1/2)** | **Done** | Mode routing · MPC COG window ingest · FastAPI + SSE |
+| **Esri C2 MapView frontend** | **Done** | Basemap modes · georef overlay · opacity slider |
+| **Mod 3 GeoCatalog Fusion** | **Done** | STAC catalog · detection metadata merge · `fusion-window` API |
+| Mod B — Azure Blob SAR | In progress | COG on storage, tactical output staging (production-gated) |
+| Mod A — MPC catalogue | **Primary** | Public STAC + COG streaming for Target Hunt |
 | Offline mock | Done | Zero-network dev/demo |
+| Local-first trial policy | **Done** | Read-only cloud ingest; no remote writes in dev |
 | Azure-hosted API | Planned | Container Apps / App Service, managed identity |
-| YOLO + fusion integration | Planned | Unified inference → tactical export |
+| Frontend Fusion Window UI | Planned | Unified Mod 3 panel on C2 dashboard |
 | Labelled training refresh | Planned | Reduce reliance on weak classes via data + fusion |
 
 ```mermaid
 flowchart LR
-  subgraph done [Completed]
-    YOLO[YOLOv11n SAR training]
-    SAHI[YOLOv11 + SAHI Optical]
-    FUS[Fusion prototype]
+  subgraph ingest [Ingestion — isolated]
+    MPC_SAR[Mod 1 MPC sentinel-1-grd COG]
+    MPC_OPT[Mod 2 MPC S2 / Landsat COG]
+  end
+  subgraph detect [Detection]
+    YOLO[YOLOv11 SAR + Optical]
     C2[ALPAR C2 Target Hunt]
+  end
+  subgraph mod3 [Mod 3 Fusion]
+    GC[GeoCatalog STAC metadata]
+    FW[Fusion Window API]
   end
   subgraph now [In progress]
     B[Mod B Azure Blob]
-    API[Private FastAPI]
   end
-  subgraph later [Deferred / planned]
-    C[GeoCatalog Mod C]
-    ML[Labelled dataset v2]
-  end
-  YOLO --> API
-  SAHI --> API
-  C2 --> API
-  B --> API
-  FUS --> API
-  C -.-> later
+  MPC_SAR --> C2
+  MPC_OPT --> C2
+  C2 --> YOLO
+  YOLO --> FW
+  GC --> FW
+  B --> detect
 ```
 
-**Strategic takeaway:** **YOLOv11 SAR and optical detection are validated**; the **ALPAR C2 Target Hunt** stack demonstrates production-oriented mode routing from map ROI to georeferenced detections. Focus shifts to **Azure-hosted delivery**, **blob-backed SAR ingest**, and **tight coupling between detector output and fusion**—without blocking on GeoCatalog.
+**Strategic takeaway:** **Mod 1/2 COG ingestion and Mod 3 fusion metadata are decoupled by design.** Target Hunt reads from public STAC/COG sources; the fusion layer operates on **detection metadata** when enabled in production deployments.
 
 ---
 
