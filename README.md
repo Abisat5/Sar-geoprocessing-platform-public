@@ -1,94 +1,125 @@
-# SAR Geoprocessing & Automated Core Platform
+<h1 align="center">SAR Geoprocessing & Automated Core Platform</h1>
 
 A modular, microservice-ready geospatial platform for Synthetic Aperture Radar (SAR) preprocessing, object detection, and multi-sensor geospatial fusion. This public repository documents the foundational pipeline and recent validation results for civilian remote sensing use cases—including environmental monitoring, disaster response, and coastal infrastructure analysis.
 
 > **Note:** This repository contains **open-source-safe** core modules and public reporting artefacts. Production API routes, credentials, full tactical visualizer sources, and trained weight files are maintained in a **private development environment** and are summarized here at a high level only.
 >
-> **Project timeline:** The ALPAR stack was kicked off in **late May 2026**. Public milestones in this README span **May–July 2026**. Sensitive identifiers, proprietary product names, and deployment credentials are intentionally generalized.
+> **Project timeline:** The ALPAR stack was kicked off in **late May 2026**. Public milestones in this README span **May–August 2026**. Sensitive identifiers, proprietary product names, and deployment credentials are intentionally generalized.
 
-
----
-
-## Comparative Air-Track Presentation — ALPAR C2 vs Flightradar24
-
-The paired screen recordings below document how the **same class of cooperative military air contact** is rendered in two distinct operational contexts: (i) the private **ALPAR C2** multi-domain common operating picture, and (ii) a contemporaneous view on the public commercial service **Flightradar24**. The comparison is intended as a **human-factors / situational-awareness** illustration — not as a claim of equivalent data rights, coverage, or affiliation fidelity.
-
-On the ALPAR side, the contact is presented inside a **tactical air picture** with domain-grouped layers, standards-inspired symbology, and operator chrome designed for C2 triage. On Flightradar24, the same period is shown through a **civil flight-awareness** map paradigm oriented toward public track browsing. Together, the clips highlight differences in visual density, symbology grammar, and operator framing when a military airframe is inspected under a purpose-built C2 shell versus a consumer flight tracker.
-
-> **Recording note:** Clips are delivered as **looping GIFs** (no audio) so they play continuously in the README. Theatre identifiers, callsigns, and exact coordinates remain generalized in the surrounding documentation; the recordings are demonstration artefacts only.
-
-<table>
-  <tr>
-    <td width="50%" valign="top">
-      <p align="center"><strong>ALPAR C2 — Military aircraft track presentation</strong><br/>
-      <sub>Private multi-domain C2 map · cooperative air picture · tactical symbology</sub></p>
-      <img src="docs/videos/alpar-c2-military-aircraft-track-july2026.gif" alt="ALPAR C2 — military aircraft track presentation (looping)" width="100%" />
-    </td>
-    <td width="50%" valign="top">
-      <p align="center"><strong>Flightradar24 — Military aircraft track presentation</strong><br/>
-      <sub>Commercial public flight-awareness map · contemporaneous capture</sub></p>
-      <img src="docs/videos/flightradar-military-aircraft-track-july2026.gif" alt="Flightradar24 — military aircraft track presentation (looping)" width="100%" />
-    </td>
-  </tr>
-</table>
-
-<p align="center"><sub><code>docs/videos/alpar-c2-military-aircraft-track-july2026.gif</code> · <code>docs/videos/flightradar-military-aircraft-track-july2026.gif</code> — side-by-side looping demonstration GIFs (August 2026)</sub></p>
-
----
-
-## Live Maritime Tracking of GPS / AIS-Enabled Vessels
-
-ALPAR C2 maintains a **cooperative maritime surface picture** for vessels that broadcast identity and kinematics through public Automatic Identification System (AIS) channels — i.e. ships whose navigational reporting (commonly described as “GPS / AIS on”) is visible to open collectors. The layer is intended for **live coastal and open-water traffic awareness**: contact symbols, short labels, and speed cues update as fresh reports arrive, so the operator can follow cooperative traffic without waiting for a SAR or optical Target Hunt cycle.
-
-Visually, contacts are differentiated by affiliation-inspired marker geometry on a dark bathymetric / maritime basemap, with optional kinematic annotations (for example reported speed in knots). This cooperative AIS layer complements **non-cooperative / dark-track** highlighting and MDA density overlays described later in the July inventory: open reporters populate the live traffic mesh, while dark-vessel logic flags absences or inconsistencies relative to other sensing modes. Exact feed endpoints, MMSI catalogues, and theatre filters remain private; the figure below illustrates the **operator-facing live track presentation** only.
-
-<p align="center">
-  <img src="docs/images/alpar-c2-live-ais-vessel-tracking-july2026.png" alt="ALPAR C2 — live AIS / GPS-enabled vessel tracking on maritime basemap" width="88%" />
-</p>
-
-<p align="center"><sub><code>alpar-c2-live-ais-vessel-tracking-july2026.png</code> — live cooperative AIS contacts · identity / speed cues · dark maritime basemap · Sea-domain surface picture</sub></p>
-
----
-
-## Thermal Heat Anomaly Detection on the C2 Map
-
-Beyond cooperative air tracks, ALPAR C2 ingests **satellite-derived thermal anomaly** products and renders them as an operator-toggleable sensing layer. The figure below shows a representative theatre extract in which discrete heat signatures appear as luminous point markers with soft radial halos on the dark tactical basemap — a visual encoding chosen for rapid detection of clustered thermal events against cluttered terrain and road networks.
-
-The underlying inputs are drawn from **public Earth-observation / open geospatial programmes** (including NASA-family thermal anomaly feeds where licensing permits). On the map they support multi-domain situational awareness alongside EW interference heat, hunt detection density, and other analysis overlays described in the July 2026 capability inventory. Exact product SKUs, refresh cadences, and theatre-specific filtering rules remain in the private environment; this README records the **operator-facing presentation** only.
-
-<p align="center">
-  <img src="docs/images/alpar-c2-thermal-heat-anomalies-july2026.png" alt="ALPAR C2 — thermal heat anomaly markers on dark tactical basemap" width="88%" />
-</p>
-
-<p align="center"><sub><code>alpar-c2-thermal-heat-anomalies-july2026.png</code> — thermal / heat-anomaly layer · clustered IR signatures · dark Esri-style tactical basemap · Sensor–EW domain toggle</sub></p>
-
----
-
-## Potential GPS / GNSS Jamming Awareness
-
-Reliable positioning is a prerequisite for both civil aviation awareness and tactical multi-domain fusion. Open flight-awareness monitors periodically publish **suspected GPS / GNSS interference** footprints — typically rendered as translucent polygons or dashed containment rings over coastal corridors where cooperative tracks exhibit anomalous navigation behaviour (for example sudden position jumps, loss of integrity cues, or corridor-scale outages).
-
-The figure below is a representative capture of such a **potential jamming / denial zone** over a Black Sea coastal theatre. The shaded polygon and nested dashed ring encode a spatial hypothesis of degraded satellite navigation rather than a confirmed emitter geolocation. In ALPAR C2, the analogous operator need is addressed by the **EW / GNSS interference heat** overlays in the Sensor–EW domain: interference-style fields are fused into the common operating picture so air and maritime tracks can be interpreted with navigation-integrity context. Exact emitter attribution, classified EW product names, and internal confidence models are withheld; this README records the **situational-awareness framing** only.
-
-<p align="center">
-  <img src="docs/images/potential-gps-gnss-jamming-zone-july2026.png" alt="Potential GPS / GNSS jamming zone overlay on coastal Black Sea theatre" width="88%" />
-</p>
-
-<p align="center"><sub><code>potential-gps-gnss-jamming-zone-july2026.png</code> — suspected GPS / GNSS interference footprint · polygonal denial cue · coastal theatre · EW-awareness context for ALPAR C2</sub></p>
 
 ---
 
 ## New Updates
 
-Engineering milestones on the private branch since **project inception (~May 2026)**. Latest entry: **July 2026 — full multi-domain C2 capability inventory** (air / sea / land / EW / intel / analysis layers, performance architecture, operator shell, public OSINT cameras).
+Engineering milestones on the private branch since **project inception (~May 2026)**. Latest entry: **August 2026 — regional OSINT deepening & platform-integrity hardening** (multi-lingual installation research, theatre-focus symbology, systematic silent-failure elimination pass).
 
 | Date | Summary |
 | :--- | :--- |
+| **August 2026** | **Regional OSINT deepening & data-integrity hardening** — multi-lingual, cross-validated installation research across the extended theatre; type-differentiated tactical symbology; exclusive theatre-focus mode; systematic audit and elimination of silent-failure classes across ingestion, correlation and catalogue subsystems; schema-governance and configuration-discoverability cleanup — see [below](#august-2026--regional-osint-deepening--platform-integrity-hardening) |
 | **July 2026** | **Multi-domain C2 operations sprint** — idle-map performance architecture; Air / Sea / Land / Sensor–EW / Intelligence / Analysis layer taxonomy; angular symbology; geofence & mission workflow; EW / heat / cameras / space–AMD insets; operator shell redesign — see [below](#july-2026--multi-domain-c2-operations-performance--public-sensing-layer) |
 | **Late June 2026** | **C2 operational hardening** — dual SAR detector routing (`sar` \| `sar-ship`), resilient MPC STAC search, SAR/optical georef & overlay fixes, optical YOLO defaults & map annotations — see [below](#late-june-2026--c2-stability-detection-performance--live-sar-validation) |
 | **~May 2026** | Project kick-off — core SAR pipeline, initial YOLOv11n / optical training, C2 prototype |
 | **13.06.2026** | SAR **YOLOv11x ship-only add-on** — A100 training, epoch-18 early stop, dual-head stack with YOLOv11n |
 | **June 2026** | MPC COG streaming, Esri C2 MapView, local-first trial policy — see [Engineering Release Report](#engineering-release-report--june-2026-private-branch-summary) |
+
+---
+
+### August 2026 — Regional OSINT Deepening & Platform-Integrity Hardening
+
+August split into two complementary tracks: (i) a **methodical widening of the open-source installation catalogue** across the extended regional theatre, presented through a refreshed **theatre-focus symbology**, and (ii) a **systematic platform-integrity pass** — a structured audit of the service, client, and data layers that catalogued dormant, silently-degraded, or brittle behaviour by severity, followed by phased, verified remediation. Unlike the July sprint (new operator-facing capability), August is best read as a **research-and-reliability cycle**: deepening what the platform already knows about the theatre, and hardening how honestly it reports on itself when something goes wrong.
+
+> **Disclosure policy:** As with prior entries, exact source citations, per-locality coordinates, internal module names, and configuration identifiers are **withheld**. This section documents research methodology, capability existence, and engineering process at an architectural level suitable for a public repository.
+
+#### Regional OSINT installation catalogue — multi-lingual deepening
+
+The platform's open-source installation catalogue (command elements, garrisons, armoured formations, training establishments) was extended across the **extended regional theatre** — the Black Sea littoral, Caucasus, Levant, and adjacent states already referenced elsewhere in this README — following a **language-native research methodology** rather than English-only aggregation.
+
+| Capability | Detail |
+| :--- | :--- |
+| **Native-language primary research** | For each nation covered, research was conducted in that nation's own primary working language(s) — official defence-ministry structure pages, national encyclopaedic references, and specialist open-source military-history sources — rather than relying solely on English-language secondary summaries. |
+| **Cross-source corroboration** | Each catalogued record required agreement between **at least two independent public sources** (native-language and English, or two independent native-language sources) before inclusion; single-source claims were treated as leads, not entries. |
+| **Locality-level coordinate policy** | Coordinates resolve to the **publicly documented garrison town or locality**, not a facility-level pinpoint — consistent with the platform's existing "no fabricated precision" posture for sensitive layers. |
+| **Deliberate omission over estimation** | Where independent sources actively **disagreed** on a unit's location, or where only a **historical / superseded** reference could be found for a currently active-sounding formation, the record was **left out** rather than interpolated. A small number of candidate entries were withheld on this basis during the August pass. |
+| **Taxonomy completion** | The installation type taxonomy (command element, garrison, armoured/mechanised formation, training establishment) is now populated across the extended theatre rather than concentrated in the home theatre, closing a category that was visibly thin in earlier snapshots. |
+
+#### Theatre-focus symbology & exclusive filtering
+
+| Capability | Detail |
+| :--- | :--- |
+| **Type-differentiated pictograms** | Single-letter category glyphs on installation and garrison markers were replaced with **type-specific pictographic symbols** (distinct silhouettes per command / armour / garrison / training class), consistent with the angular, standards-inspired symbology direction introduced in July. |
+| **Exclusive theatre-focus mode** | Selecting a nation in the theatre-focus panel now **filters the installation, garrison, and radar/coverage layers to that nation exclusively**, with the remainder of the map held under the existing dim/mask presentation — replacing an earlier behaviour where the focused nation was merely prioritized rather than isolated. |
+| **Consistent alias resolution** | Nation-level filtering now resolves a small set of known source-language / catalogue-language naming variants for the same country to the same theatre-focus group, so records ingested from open-data sources in one language correctly join records curated in another. |
+
+<p align="center">
+  <img src="docs/videos/alpar-c2-greece-theatre-focus-airfield-august2026.gif" alt="ALPAR C2 — theatre-focus drill-down from Aegean island coverage rings to a single tracked air installation" width="82%" />
+</p>
+
+<p align="center"><sub><code>alpar-c2-greece-theatre-focus-airfield-august2026.gif</code> — looping capture: exclusive theatre-focus over a Greek / Aegean sector (island tracks, radar / early-warning coverage rings) drilling down to a single tracked air installation at satellite resolution</sub></p>
+
+> **Recording note:** Delivered as a **looping GIF** (no audio), consistent with the other recordings in this README. The clip illustrates the **theatre-focus drill-down interaction** only — exact installation identity, coordinates, and detection-range parameters are not asserted by this figure and remain generalized in the surrounding text.
+
+#### Public-camera network — theatre density & inline live preview
+
+The **public OSINT camera layer** first introduced in July (documented catalogue, verify-before-seed policy, approximate FOV wedges) reached meaningful operational **density** in a covered coastal sector during August, alongside a new **inline live-preview** interaction pattern.
+
+| Capability | Detail |
+| :--- | :--- |
+| **Catalogue density** | The verified public-camera catalogue for the focused coastal sector now surfaces a substantially denser marker set than the July snapshot — every marker still backed by a citeable public source page under the standing **verify-before-seed** policy; no fabricated or unverified feeds are added to close coverage gaps. |
+| **Inline live-preview inset** | Selecting a camera marker opens a compact **live-feed viewer** directly on the tactical map — snapshot or HLS stream, depending on the source — without navigating away from the operator's current map context, for rapid visual cross-check against other sensing layers. |
+| **Dense-cluster marker handling** | Closely-spaced camera groups in tight coastal segments render with viewport-aware layout so overlapping markers stay individually selectable at interactive zoom levels rather than collapsing into an unusable stack. |
+
+<p align="center">
+  <img src="docs/images/alpar-c2-public-camera-network-theatre-density-august2026.png" alt="ALPAR C2 — dense public-camera marker network over a coastal sector with an inline live-feed preview inset" width="92%" />
+</p>
+
+<p align="center"><sub><code>alpar-c2-public-camera-network-theatre-density-august2026.png</code> — verified public-camera catalogue over a coastal theatre sector · inline live-preview inset (representative harbour source) · dark tactical basemap</sub></p>
+
+> **Public-repo note:** Exact camera counts, source URLs, and per-site attribution are withheld. This figure illustrates catalogue density and the live-preview interaction pattern only — it is not a claim about the operational status of any specific installation.
+
+#### Security & defense news intelligence — multi-source aggregation & cross-verification
+
+August also matured the **open-source news intelligence panel**, which sits alongside the geospatial map views and closes the loop between "what sensors observe" and "what is being reported." It ingests security/defense-relevant reporting from a broad set of open sources and turns an unstructured news stream into a triageable, filterable feed.
+
+| Capability | Detail |
+| :--- | :--- |
+| **Multi-source aggregation** | Items are pulled continuously from a broad panel of open news sources and normalized into a single feed — headline, source domain, publication time, and outbound link — rather than requiring an operator to monitor each outlet individually. |
+| **Automated relevance scoring** | Each item is scored on ingest so higher-relevance reporting surfaces first in a high-volume feed; the scoring model and its exact thresholds are withheld under the standing disclosure policy. |
+| **Country-entity tagging & filter** | Items are automatically tagged with the country or countries they concern — a single report can reference more than one nation — and the panel exposes a multi-country filter so an operator can narrow the feed to a specific theatre of interest. |
+| **Cross-source verification pass** | A corroboration pass — in the spirit of established open-source-investigation methodology — checks whether a claim is independently repeated across sources before it is weighted as higher-confidence, rather than trusting any single outlet at face value. |
+| **Durable, replay-safe storage** | Ingested items are retained under a schema prepared specifically for this purpose; as with other schema work in this project, the migration is written and reviewed before being applied to any running database, never auto-applied on deploy. |
+
+<p align="center">
+  <img src="docs/images/alpar-c2-security-defense-news-intelligence-august2026.png" alt="ALPAR C2 — security and defense news intelligence panel with relevance scoring and multi-country filter" width="70%" />
+</p>
+
+<p align="center"><sub><code>alpar-c2-security-defense-news-intelligence-august2026.png</code> — open-source news intelligence feed · automated relevance scoring · country-entity tagging and multi-country filter</sub></p>
+
+> **Public-repo note:** Specific headlines, source outlets, exact relevance scores, and the precise set of monitored countries shown in this figure are illustrative of the interface only and are not an exhaustive or current list of sources or coverage.
+
+#### Platform-integrity pass — silent-failure elimination
+
+A structured audit was conducted across the **service layer, client layer, and data/configuration layer**, cataloguing behaviour that was **dormant, silently degraded, or brittle by construction** — code that appeared to function but quietly did less than advertised. Findings were graded by severity (does a real capability silently do nothing / return wrong data, or is it a hygiene gap) and worked through in a **phased, verified remediation pass**: every change was syntax- and type-checked, and re-exercised against live data before moving to the next item.
+
+| Failure class | What was found | Remediation |
+| :--- | :--- | :--- |
+| **Geographic-bounds clipping** | A single, narrow default geographic filter — inherited by several unrelated subsystems (installation ingest, open conflict-event correlation, reconnaissance-orbit detection, landing correlation, signal-intercept and outage-correlation theatres) — silently dropped valid records at the edge of the operating theatre from live API responses, with no error surfaced anywhere. | The bound was independently re-derived and widened per affected subsystem on **both the service and client side**, with an explicit rationale recorded for each; a repeat of the same defect was subsequently found and closed in **the same subsystem family**, not only the first instance discovered. |
+| **Position-derived identifier collision** | Several open-source catalogue loaders derived a record's secondary identifier from its **position in a source list** rather than from its content — meaning reordering or extending the source list could silently collide two unrelated records onto the same identifier. | Identifier derivation was moved to a **content-stable scheme** across every affected catalogue loader; the one loader where the identifier is a public-facing contract (referenced by an existing operator control) was instead changed to **fail loudly** if a new entry is added without an explicit mapping, rather than silently colliding. |
+| **Silent exception swallowing** | Three subsystems — perimeter-breach correlation, cross-catalogue metadata fusion, and the executive KPI summary — caught their own query failures internally and returned an **empty, success-shaped result**, indistinguishable from "nothing to report." | Each subsystem now tracks its own last-failure state and surfaces an explicit **degraded** signal through its existing response contract (no new endpoints, no schema break) instead of a bare "ok" that could mean either "clear" or "broken." |
+| **Dormant, keyless capability** | An open conflict-event correlation stream — sourced entirely from **no-key, public feeds** — was disabled by default, indistinguishable at the operator layer from a capability that had never been built. | Re-enabled by default; the one adjacent source in the same family that genuinely requires privileged access remains deliberately off. |
+| **Schema governance gap** | Two production tables existed only through imperative, at-startup schema creation, with no formal migration history — unlike the rest of the schema. | Formal, idempotent migrations were authored for both and verified to resolve cleanly against the existing migration chain. Consistent with the platform's standing policy of **not applying schema changes without an explicit, separate review step**, these migrations were authored but intentionally **left unapplied** pending that review. |
+| **Configuration discoverability** | Roughly **seventeen** subsystem-level configuration switches existed in code with no corresponding entry in the public configuration template, making several already-working capabilities undiscoverable without reading source. | Documented in the configuration template with a short description and, where relevant, a note on credential requirements — most needed no credential at all. |
+
+```mermaid
+flowchart LR
+  A[Structured audit — service / client / data layers] --> B[Severity & blast-radius triage]
+  B --> C[Phased remediation: critical to low]
+  C --> D[Per-change verification — syntax + type-check]
+  D --> E[Live re-exercise against real data]
+  E --> F[Regression-free restart & smoke test]
+  E -.repeat instance found.-> B
+```
+
+> **Public-repo note:** Country-level record counts, exact geographic bounds, internal module and table names, and per-source citations remain in the private environment. This section records research methodology and engineering process, not the underlying dataset or code.
 
 ---
 
@@ -143,6 +174,31 @@ The opening showcase above illustrates four artefacts only: **cooperative milita
 
 <p align="center"><sub><code>alpar-c2-july2026-map-layers.png</code> · <code>alpar-c2-july2026-clean-map.png</code> — map-first presentation mode with zone overlays on dark basemap (panel chrome collapsed)</sub></p>
 
+#### Comparative air-track presentation — ALPAR C2 vs Flightradar24
+
+The paired screen recordings below document how the **same class of cooperative military air contact** is rendered in two distinct operational contexts: (i) the private **ALPAR C2** multi-domain common operating picture, and (ii) a contemporaneous view on the public commercial service **Flightradar24**. The comparison is intended as a **human-factors / situational-awareness** illustration — not as a claim of equivalent data rights, coverage, or affiliation fidelity.
+
+On the ALPAR side, the contact is presented inside a **tactical air picture** with domain-grouped layers, standards-inspired symbology, and operator chrome designed for C2 triage. On Flightradar24, the same period is shown through a **civil flight-awareness** map paradigm oriented toward public track browsing. Together, the clips highlight differences in visual density, symbology grammar, and operator framing when a military airframe is inspected under a purpose-built C2 shell versus a consumer flight tracker.
+
+> **Recording note:** Clips are delivered as **looping GIFs** (no audio) so they play continuously in the README. Theatre identifiers, callsigns, and exact coordinates remain generalized in the surrounding documentation; the recordings are demonstration artefacts only.
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <p align="center"><strong>ALPAR C2 — Military aircraft track presentation</strong><br/>
+      <sub>Private multi-domain C2 map · cooperative air picture · tactical symbology</sub></p>
+      <img src="docs/videos/alpar-c2-military-aircraft-track-july2026.gif" alt="ALPAR C2 — military aircraft track presentation (looping)" width="100%" />
+    </td>
+    <td width="50%" valign="top">
+      <p align="center"><strong>Flightradar24 — Military aircraft track presentation</strong><br/>
+      <sub>Commercial public flight-awareness map · contemporaneous capture</sub></p>
+      <img src="docs/videos/flightradar-military-aircraft-track-july2026.gif" alt="Flightradar24 — military aircraft track presentation (looping)" width="100%" />
+    </td>
+  </tr>
+</table>
+
+<p align="center"><sub><code>docs/videos/alpar-c2-military-aircraft-track-july2026.gif</code> · <code>docs/videos/flightradar-military-aircraft-track-july2026.gif</code> — side-by-side looping demonstration GIFs (August 2026)</sub></p>
+
 #### Air domain (beyond the showcase clip)
 
 Cooperative air-track presentation is shown in the opening GIF comparison. July also shipped the supporting air-picture tooling below.
@@ -155,6 +211,18 @@ Cooperative air-track presentation is shown in the opening GIF comparison. July 
 | **GPU-instanced symbology** | Optional WebGL2 path for dense air/sea military symbols at interactive frame rates, kept off the React commit hot path. |
 | **ISR orbit footprints** | Planned / active reconnaissance loiter orbits with lightweight GPU-safe animated markers (distinct from satellite overpass). |
 | **Approach / landing cues** | Correlation of air tracks against coastal / air installations for approach and touchdown situational awareness, with a dedicated landing tab in the detail dock. |
+
+#### Live maritime tracking of GPS / AIS-enabled vessels
+
+ALPAR C2 maintains a **cooperative maritime surface picture** for vessels that broadcast identity and kinematics through public Automatic Identification System (AIS) channels — i.e. ships whose navigational reporting (commonly described as “GPS / AIS on”) is visible to open collectors. The layer is intended for **live coastal and open-water traffic awareness**: contact symbols, short labels, and speed cues update as fresh reports arrive, so the operator can follow cooperative traffic without waiting for a SAR or optical Target Hunt cycle.
+
+Visually, contacts are differentiated by affiliation-inspired marker geometry on a dark bathymetric / maritime basemap, with optional kinematic annotations (for example reported speed in knots). This cooperative AIS layer complements **non-cooperative / dark-track** highlighting and MDA density overlays described below: open reporters populate the live traffic mesh, while dark-vessel logic flags absences or inconsistencies relative to other sensing modes. Exact feed endpoints, MMSI catalogues, and theatre filters remain private; the figure below illustrates the **operator-facing live track presentation** only.
+
+<p align="center">
+  <img src="docs/images/alpar-c2-live-ais-vessel-tracking-july2026.png" alt="ALPAR C2 — live AIS / GPS-enabled vessel tracking on maritime basemap" width="88%" />
+</p>
+
+<p align="center"><sub><code>alpar-c2-live-ais-vessel-tracking-july2026.png</code> — live cooperative AIS contacts · identity / speed cues · dark maritime basemap · Sea-domain surface picture</sub></p>
 
 #### Maritime domain (beyond the live AIS figure)
 
@@ -180,9 +248,33 @@ Live GPS / AIS-enabled vessel tracking is illustrated above. The July maritime s
 | **Barracks / garrisons** | Land garrison and training-site point layers. |
 | **Radar coverage rings** | Theoretical coverage rings for operator planning (not measured RF surveys). |
 
+#### Thermal heat anomaly detection on the C2 map
+
+Beyond cooperative air tracks, ALPAR C2 ingests **satellite-derived thermal anomaly** products and renders them as an operator-toggleable sensing layer. The figure below shows a representative theatre extract in which discrete heat signatures appear as luminous point markers with soft radial halos on the dark tactical basemap — a visual encoding chosen for rapid detection of clustered thermal events against cluttered terrain and road networks.
+
+The underlying inputs are drawn from **public Earth-observation / open geospatial programmes** (including NASA-family thermal anomaly feeds where licensing permits). On the map they support multi-domain situational awareness alongside EW interference heat, hunt detection density, and other analysis overlays described below. Exact product SKUs, refresh cadences, and theatre-specific filtering rules remain in the private environment; this README records the **operator-facing presentation** only.
+
+<p align="center">
+  <img src="docs/images/alpar-c2-thermal-heat-anomalies-july2026.png" alt="ALPAR C2 — thermal heat anomaly markers on dark tactical basemap" width="88%" />
+</p>
+
+<p align="center"><sub><code>alpar-c2-thermal-heat-anomalies-july2026.png</code> — thermal / heat-anomaly layer · clustered IR signatures · dark Esri-style tactical basemap · Sensor–EW domain toggle</sub></p>
+
+#### Potential GPS / GNSS jamming awareness
+
+Reliable positioning is a prerequisite for both civil aviation awareness and tactical multi-domain fusion. Open flight-awareness monitors periodically publish **suspected GPS / GNSS interference** footprints — typically rendered as translucent polygons or dashed containment rings over coastal corridors where cooperative tracks exhibit anomalous navigation behaviour (for example sudden position jumps, loss of integrity cues, or corridor-scale outages).
+
+The figure below is a representative capture of such a **potential jamming / denial zone** over a Black Sea coastal theatre. The shaded polygon and nested dashed ring encode a spatial hypothesis of degraded satellite navigation rather than a confirmed emitter geolocation. In ALPAR C2, the analogous operator need is addressed by the **EW / GNSS interference heat** overlays in the Sensor–EW domain: interference-style fields are fused into the common operating picture so air and maritime tracks can be interpreted with navigation-integrity context. Exact emitter attribution, classified EW product names, and internal confidence models are withheld; this README records the **situational-awareness framing** only.
+
+<p align="center">
+  <img src="docs/images/potential-gps-gnss-jamming-zone-july2026.png" alt="Potential GPS / GNSS jamming zone overlay on coastal Black Sea theatre" width="88%" />
+</p>
+
+<p align="center"><sub><code>potential-gps-gnss-jamming-zone-july2026.png</code> — suspected GPS / GNSS interference footprint · polygonal denial cue · coastal theatre · EW-awareness context for ALPAR C2</sub></p>
+
 #### Sensor, EW & hybrid awareness (beyond thermal & jamming figures)
 
-Thermal anomalies and potential GNSS jamming awareness are illustrated in the opening figures. July also wired the adjacent Sensor–EW surfaces below.
+July also wired the adjacent Sensor–EW surfaces below.
 
 | Capability | Detail |
 | :--- | :--- |
@@ -903,7 +995,7 @@ Bounding Box Regression Map Shape   : torch.Size([1, 4, 64, 64])
 
 ## Roadmap (Public Summary)
 
-Revised after the **June 2026 MPC COG streaming release**, **13 June 2026 YOLOv11x ship add-on**, **late-June C2 hardening**, and the **July 2026 full multi-domain C2 capability inventory** (air / sea / land / EW / intel / analysis layers, idle-map performance architecture, operator shell, public OSINT cameras, space–AMD insets) — all within the **May–July 2026** project window.
+Revised after the **June 2026 MPC COG streaming release**, **13 June 2026 YOLOv11x ship add-on**, **late-June C2 hardening**, the **July 2026 full multi-domain C2 capability inventory** (air / sea / land / EW / intel / analysis layers, idle-map performance architecture, operator shell, public OSINT cameras, space–AMD insets), and the **August 2026 regional OSINT deepening & platform-integrity hardening pass** — all within the **May–August 2026** project window.
 
 | Phase | Status | Focus |
 |-------|--------|--------|
@@ -917,6 +1009,8 @@ Revised after the **June 2026 MPC COG streaming release**, **13 June 2026 YOLOv1
 | **C2 stability & MPC STAC resilience** | **Done** | Dual SAR routing · chunked STAC · overlay georef · optical YOLO defaults |
 | **Multi-domain C2 operations (July)** | **Done** | Idle-map perf · shell/UX · air/sea/land beyond showcase · MDA/dark · ISR/landings · geofence/mission · cameras/space–AMD · hybrid EW alerts |
 | **Mod 3 GeoCatalog Fusion** | **Done** | STAC catalog · detection metadata merge · `fusion-window` API |
+| **Regional OSINT deepening (August)** | **Done** | Multi-lingual, cross-validated installation research · theatre-focus symbology · exclusive nation-level filtering |
+| **Platform-integrity hardening (August)** | **Done** | Structured silent-failure audit · phased verified remediation · schema-governance & config-discoverability cleanup |
 | Mod B — Azure Blob SAR | In progress | COG on storage, tactical output staging (production-gated) |
 | Mod A — MPC catalogue | **Primary** | Public STAC + COG streaming for Target Hunt |
 | Offline mock | Done | Zero-network dev/demo |
